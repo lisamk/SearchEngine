@@ -3,6 +3,7 @@ from sklearn.cluster import AgglomerativeClustering
 import pandas as pd
 import numpy as np
 import scipy as sp
+import config
 
 '''
 This is a first start of task 2
@@ -31,9 +32,9 @@ TODO:
 
 '''
 
-DATA_DIR = "D:/DATA/div-2014/devset/"
-FEATURE_PATH = "descvis/img/"
-GROUND_TRUTH_PATH = "gt/dGT/"
+DATA_DIR = config.data_path
+FEATURE_PATH = config.feature_path
+GROUND_TRUTH_PATH = config.ground_truth_path
 
 # read in the file with the list of clusters in athens
 df_cluster = pd.read_csv(DATA_DIR + GROUND_TRUTH_PATH + "acropolis_athens dclusterGT.txt", sep=",", header=None)
