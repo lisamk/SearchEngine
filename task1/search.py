@@ -5,16 +5,8 @@ import os
 import zipfile
 
 class searchMethod:
-    geolocator = Nominatim()
-    lat1 = 0
-    lon1 = 0
 
     def searchFor(word):
-        global geolocator, lat1, lon1
-        location = geolocator.geocode("word")
-        lat1 = location.latitude
-        lon1 = location.longitude
-
         relevantFilesList = []
         relevantLines = []
 
@@ -37,13 +29,16 @@ class searchMethod:
 
         return relevantLines
 
-    def filterByCoordinates(relevant):
+    def filterByCoordinates(relevant, search):
+        relevantLines = []
 
         def haversine(lon2, lat2):
             # convert decimal degrees to radians
-            global lat1, lon1
+            geolocator = Nominatim()
+            location = geolocator.geocode(search)
+            lat1 = location.latitude
+            lon1 = location.longitude
             lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-
             # haversine formula
             dlon = lon2 - lon1
             dlat = lat2 - lat1
@@ -52,36 +47,60 @@ class searchMethod:
             r = 6371  # Radius of earth in kilometers. Use 3956 for miles
             return c * r
 
-        relevantLines = []
         for line in relevant:
-            'TODO get test point from xml'
-            test_point = [{'lat': -7.79457, 'lng': 110.36563}]
-
-            lat2 = test_point[0]['lat']
-            lon2 = test_point[0]['lng']
-
-            radius = 10.00  # in kilometer
-
-            a = haversine(lon2, lat2)
-
-         #   print('Distance (km) : ', a)
-            if a <= radius:
+            xml = minidom.parseString(line)
+            photo = xml.getElementsByTagName("photo")[0]
+            if photo.hasAttribute('latitude') and photo.hasAttribute('longitude'):
+                lat2 = float(photo.getAttribute('latitude'))
+                lon2 = float(photo.getAttribute('longitude'))
+                radius = 10.00  #TODO
+                a = haversine(lon2, lat2)
+                if a <= radius:
+                    relevantLines.append(line)
+            else:
                 relevantLines.append(line)
 
         return relevantLines
 
-    'TODO'
     def filterByTags(relevant):
-        return relevant
+        relevantLines = []
+        unrelevant = ["karneval","market"] #TODO find more
+
+        for line in relevant:
+            xml = minidom.parseString(line)
+            photo = xml.getElementsByTagName("photo")[0]
+            if photo.hasAttribute('tags'):
+                tags = photo.getAttribute('tags')
+                relevant = True
+                for u in unrelevant:
+                    if u in tags:
+                        unrelevant = False
+                        break
+                if relevant:
+                    relevantLines.append(line)
+        return relevantLines
 
     'TODO'
     def filterByFlickr(relevant):
-        return relevant
+        relevantLines = []
+        for line in relevant:
+            xml = minidom.parseString(line)
+            photo = xml.getElementsByTagName("photo")[0]
+            if photo.hasAttribute('views'):
+                views = int(photo.getAttribute('views'))
+                if views > 100:
+                    relevantLines.append(line)
+        return relevantLines
 
-     # Filter
-    filteredByName = searchFor(b'sydney')
-    filteredByLocation = filterByCoordinates(filteredByName)
+    #FILTER
+    search = "norway"
+    filteredByName = searchFor(b'search')
+  #  filteredByName = ["""<photo date_taken="2010-09-04 19:14:52" id="5004570811" tags="panorama toronto montreal niagrafalls sydney geiranger" title="Geiranger, Norway" url_b="http://farm5.static.flickr.com/4106/5004570811_0a860b6b68_b.jpg" userid="89093444@N00" views="262" />""",
+  #                    """<photo date_taken="2005-02-11 14:27:52" id="4614474" latitude="-33.862919" longitude="151.212601" tags="hotel honeymoon sydney australia" title="Sydney:  Hotel Intercontinental" url_b="http://farm1.static.flickr.com/5/4614474_793ccae3d0_b.jpg" userid="89504146@N00" views="139" />""",
+  #                    """<photo date_taken="2005-08-23 09:24:06" id="36456603" tags="sky clouds town sydney australia hasselblad" title="Sydney" url_b="http://farm1.static.flickr.com/30/36456603_9de5c110ef_b.jpg" userid="89826095@N00" views="56" />"""]
+    filteredByLocation = filterByCoordinates(filteredByName, search)
     filteredByTags = filterByTags(filteredByLocation)
     filteredByFlickr = filterByFlickr(filteredByTags);
-
+    for s in filteredByFlickr:
+        print("Photo with searchtag in title: ", s)
 
