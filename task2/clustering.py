@@ -1,8 +1,7 @@
-import sklearn
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import DBSCAN
 import pandas as pd
 import numpy as np
-import scipy as sp
+import statistics as st
 import config
 
 '''
@@ -36,51 +35,66 @@ DATA_DIR = config.data_path
 FEATURE_PATH = config.feature_path
 GROUND_TRUTH_PATH = config.ground_truth_path
 
-# read in the file with the list of clusters in athens
-df_cluster = pd.read_csv(DATA_DIR + GROUND_TRUTH_PATH + "acropolis_athens dclusterGT.txt", sep=",", header=None)
-# we only need the number of clusters for now
-n_clusters = len(df_cluster)
+# do clustering for every location we have in the dev set
+# read locations file
+df_locations = pd.read_csv(DATA_DIR + "poiNameCorrespondences.txt", sep="\t", header=None)
+# remove first column (names)
+locations = np.array(df_locations[1])
 
-# read the ground truth file for the images
-df_gt = pd.read_csv(DATA_DIR + GROUND_TRUTH_PATH + "acropolis_athens dGT.txt", sep=",", header=None)
-# create a dictionary of the form { imageID : clusterID }
-truth = dict(zip(df_gt[0], df_gt[1]))
+score = []
+for location in locations:
+    # read in the file with the list of clusters in athens
+    df_cluster = pd.read_csv(DATA_DIR + GROUND_TRUTH_PATH + location + " dclusterGT.txt", sep=",", header=None)
+    # we only need the number of clusters for now
+    n_clusters = len(df_cluster)
 
-# read in the image features
-df_feature = pd.read_csv(DATA_DIR + FEATURE_PATH + "acropolis_athens CM.csv", sep=",", header=None)
-# read the ids into an array
-ids = np.array(df_feature[0])
+    # read the ground truth file for the images
+    df_gt = pd.read_csv(DATA_DIR + GROUND_TRUTH_PATH + location + " dGT.txt", sep=",", header=None)
+    # create a dictionary of the form { imageID : clusterID }
+    truth = dict(zip(df_gt[0], df_gt[1]))
 
-# remove the first column with the image ids
-df_feature = df_feature.drop([0], axis=1)
-# create an array of the feautures [f1,f2,....]
-features = np.array(df_feature)
+    # read in the image features
+    df_feature = pd.read_csv(DATA_DIR + FEATURE_PATH + location + " CM.csv", sep=",", header=None)
+    # TODO add more features into the array here
+    # read the ids into an array
+    ids = np.array(df_feature[0])
 
-# use feature array and number of clusters from above
-model = AgglomerativeClustering(n_clusters=n_clusters,
-                                linkage="ward").fit(features)
-# create dictionary { imageID, predictedCluster }
-prediction = dict(zip(ids, model.labels_))
+    # remove the first column with the image ids
+    df_feature = df_feature.drop([0], axis=1)
+    # create an array of the feautures [f1,f2,....]
+    features = np.array(df_feature)
 
-# there isn't a ground truth for each image, so we can use the subset for comparision
-prediction_subset = {x: prediction[x] for x in truth.keys() if x in prediction}
+    # use feature array and number of clusters from above
+    # use DBSCAN because it does not need the number of clusters
+    model = DBSCAN().fit(features)
+    # create dictionary { imageID, predictedCluster }
+    prediction = dict(zip(ids, model.labels_))
 
-# in the next step we pairwisely compare each key with each other
-# if they are in the same cluster in the each dictionary
-correct = 0
-wrong = 0
-for key1 in prediction_subset.keys():
-    for key2 in prediction_subset.keys():
-        if key1 != key2:
-            if ((truth.get(key1) == truth.get(key2) and (
-                        prediction_subset.get(key1) == prediction_subset.get(key2))) or (
-                            truth.get(key1) != truth.get(key2) and (
-                                prediction_subset.get(key1) != prediction_subset.get(key2)))):
-                correct += 1
-            else:
-                wrong += 1
+    # there isn't a ground truth for each image, so we can use the subset for comparision
+    # additionally the predictions are now in the same order as the truth values
+    prediction_subset = {x: prediction[x] for x in truth.keys() if x in prediction}
 
-# the performance is measured by Rand index
-# https://en.wikipedia.org/wiki/Rand_index
-score = correct / (correct + wrong)
-print(score)
+    # in the next step we pairwisely compare each key with each other
+    # if they are in the same cluster in the each dictionary
+    correct = 0
+    wrong = 0
+    for key1 in prediction_subset.keys():
+        for key2 in prediction_subset.keys():
+            if key1 != key2:
+                if ((truth.get(key1) == truth.get(key2) and (
+                            prediction_subset.get(key1) == prediction_subset.get(key2))) or (
+                                truth.get(key1) != truth.get(key2) and (
+                                    prediction_subset.get(key1) != prediction_subset.get(key2)))):
+                    correct += 1
+                else:
+                    wrong += 1
+
+    # the performance is measured by Rand index
+    # https://en.wikipedia.org/wiki/Rand_index
+    score.append(correct / (correct + wrong))
+
+# calculate statistics over all scores
+print("Min:    " + str(min(score)))
+print("Mean:   " + str(sum(score) / len(score)))
+print("Median: " + str(st.median(score)))
+print("Max:    " + str(max(score)))
