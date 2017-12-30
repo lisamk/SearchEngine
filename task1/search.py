@@ -4,50 +4,42 @@ from geopy.geocoders import Nominatim
 import os
 import zipfile
 import config
-import model
+from model import *
 
-class searchMethod:
+class rate_method:
+    images = []
+    files = []
+    name_score = []
+    tag_score = []
+    views_score = []
+    distance_score = []
 
-    def rate(search):
+    def rate(self, search):
 
-        def rateFileName(word):
-            relevantFilesList = []
-            files = []
-
+        def rate_name():
 
             # 1 if in file name, else 0
-            with zipfile.ZipFile(config.data_path+'/desccred.zip') as z:
+            with zipfile.ZipFile(config.data_path+'desccred2.zip') as z:
                 for filename in z.namelist():
                   if not os.path.isdir(filename):
                         with z.open(filename, 'r') as f:
                             for line in f:
-                                m = model(line)
-                                files.append(m)
-                                if filename not in relevantFilesList:
-                                    relevantFilesList.append(filename)
-                                    if word in line:
-                                        m.setFileNameScore(1)
+                                if "<photo ".encode() in line:
+                                    line = line.decode('utf-8')
+                                    self.files.append(line)
+                                    if search.encode().decode('utf-8').upper() in line.upper():
+                                        self.name_score.append(1)
                                     else:
-                                        m.setFileNameScore(0)
-                                       # relevantLines.append(line)
-
-
-            # for name in relevantFilesList[:]:
-            #     f = zipfile.ZipFile(config.data_path+'/desccred.zip')
-            #     xmlfile = f.open(name)
-            #     xmldoc = minidom.parse(xmlfile)
-            #     idlist = xmldoc.getElementsByTagName('photo')
-
-            return files
+                                        self.name_score.append(0)
 
         # 1-Entfernung/(6371/2)
-        def rateByCoordinates(model, search):
+        def rate_distance():
             r = 6371  # Radius of earth in kilometers. Use 3956 for miles
 
             def haversine(lon2, lat2):
                 # convert decimal degrees to radians
                 geolocator = Nominatim()
-                location = geolocator.geocode(search)
+                location = geolocator.geocode(search, timeout=None)
                 lat1 = location.latitude
                 lon1 = location.longitude
                 lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
@@ -58,59 +50,64 @@ class searchMethod:
                 c = 2 * asin(sqrt(a))
                 return c * r
 
-            for m in model:
-                xml = minidom.parseString(m.file)
+            for line in self.files:
+                xml = minidom.parseString(line)
                 photo = xml.getElementsByTagName("photo")[0]
                 if photo.hasAttribute('latitude') and photo.hasAttribute('longitude'):
                     lat2 = float(photo.getAttribute('latitude'))
                     lon2 = float(photo.getAttribute('longitude'))
                   #  radius = 10.00
                     a = haversine(lon2, lat2)
-                    m.setDistanceScore(1-(r/2)/a)
+                    self.distance_score.append(1-(r/2)/a)
                 else:
-                    m.setDistanceScore(0) #TODO
-
-            return model
+                    self.distance_score.append(0.5) #TODO to discuss
 
         # 1-foundTags/numTags
-        def rateByTags(model):
+        def rate_tags():
             unrelevant = ["karneval","market"] #TODO find more
 
-            for m in model:
+            for line in self.files:
                 count = 0
-                xml = minidom.parseString(m.file)
+                xml = minidom.parseString(line)
                 photo = xml.getElementsByTagName("photo")[0]
                 if photo.hasAttribute('tags'):
                     tags = photo.getAttribute('tags')
                     for u in unrelevant:
                         if u in tags:
                             count = count + 1
-                    m.setTagsScore(1-count/len(unrelevant))
-            return m
+                    self.tag_score.append(1-count/len(unrelevant))
+                else:
+                    self.tag_score.append(0.5)
 
         # 1-views/maxviews
-        def rateByViews(model):
+        def rate_views():
             maxViews = 0
-            for m in model:
-                xml = minidom.parseString(m.file)
+            for line in self.files:
+                xml = minidom.parseString(line)
                 photo = xml.getElementsByTagName("photo")[0]
                 if photo.hasAttribute('views'):
                     views = int(photo.getAttribute('views'))
                     if views>maxViews:
                         maxViews = views
-            for m in model:
-                xml = minidom.parseString(m.file)
+            for line in self.files:
+                xml = minidom.parseString(line)
                 photo = xml.getElementsByTagName("photo")[0]
                 if photo.hasAttribute('views'):
                     views = int(photo.getAttribute('views'))
-                    m.setViewsScore(1-views/maxViews)
-            return model
+                    self.views_score.append(1-views/maxViews)
+                else:
+                    self.views_score.append(0.5)
 
-        rated = rateFileName(search)
-     #   rated = rateByCoordinates(rated, search)
-     #   rated = rateByTags(rated)
-     #   return rateByViews(rated);
+        rate_name()
+       # rate_distance()
+        rate_tags()
+        rate_views();
+        for i in range(0, len(s.files)):
+            self.images.append(image(s.files[i], s.name_score[i], 0, s.views_score[i], s.tag_score[i]))
 
-    result = rate("norway")
-    for s in result:
-        print(s.file);
+s = rate_method()
+s.rate("Barcelona")
+for i in s.images:
+    print(i.file);
+    scores = [i.name_score, i.tags_score, i.views_score, i.distance_score]
+    print(scores)
