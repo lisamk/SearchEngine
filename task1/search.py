@@ -1,9 +1,10 @@
 from xml.dom import minidom
 from math import radians, cos, sin, asin, sqrt
 from geopy.geocoders import Nominatim
-import os
 import zipfile
 import config
+import cv2
+import os
 from model import *
 
 class rate_method:
@@ -13,6 +14,7 @@ class rate_method:
     tag_score = []
     views_score = []
     distance_score = []
+    face_score = []
 
     def rate(self, search):
 
@@ -98,12 +100,45 @@ class rate_method:
                 else:
                     self.views_score.append(0.5)
 
+        def rate_face():
+            def checkForFaces(file):
+                face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+                img = cv2.imread(file)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+                # Only face in front of camera detected
+                # with this parameters some pictures without faces are also detected
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.03,
+                                                      minNeighbors=25, minSize=(70, 70))
+                for (x, y, w, h) in faces:
+                    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                if len(faces) > 0:
+                    return True
+                else:
+                    return False
+
+            folder = config.data_path+'img'
+            for line in self.files:
+                xml = minidom.parseString(line)
+                photo = xml.getElementsByTagName("photo")[0]
+                id = photo.getAttribute('id')
+                for filename in os.listdir(folder):
+                    if not os.path.isdir(filename):
+                        if ".jpg" in filename and id in filename:
+                            tmp = checkForFaces(folder + filename)
+                            if tmp:
+                                self.face_score.append(1)
+                            else:
+                                self.face_score.append(0)
+
         rate_name()
        # rate_distance()
         rate_tags()
-        rate_views();
+        rate_views()
+      #  rate_face()
         for i in range(0, len(s.files)):
-            self.images.append(image(s.files[i], s.name_score[i], 0, s.views_score[i], s.tag_score[i]))
+            self.images.append(image(s.files[i], s.name_score[i], 0, s.views_score[i], s.tag_score[i], s.face_score[i]))
 
 s = rate_method()
 s.rate("Barcelona")
