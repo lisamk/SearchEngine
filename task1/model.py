@@ -18,23 +18,14 @@ def checkForFaces(file):
     else:
         return False
 
+class image:
 
-class model:
-
-    def __init__(self, file):
+    def __init__(self, file, name_score, distance_score, views_score, tags_score):
         self.file = file;
-
-    def setFileNameScore(self, score):
-        self.fileNameScore = score
-
-    def setDistanceScore(self, score):
-        self.distanceScore = score
-
-    def setViewsScore(self, score):
-        self.viewsScore = score
-
-    def setTagsScore(self, score):
-        self.tagsScore(self, score)
+        self.name_score = name_score
+        self.distance_score = distance_score
+        self.views_score = views_score
+        self.tags_score = tags_score
 
     # expects to get a path to a folder with pictures (devset/img)
     def faceDetect(self, folder):
