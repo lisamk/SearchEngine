@@ -21,7 +21,7 @@ class rate_method:
         def rate_name():
 
             # 1 if in file name, else 0
-            with zipfile.ZipFile(config.data_path+'desccred2.zip') as z:
+            with zipfile.ZipFile(config.data_path+'desccred.zip') as z:
                 for filename in z.namelist():
                   if not os.path.isdir(filename):
                         with z.open(filename, 'r') as f:
@@ -66,11 +66,11 @@ class rate_method:
 
         # 1-foundTags/numTags
         def rate_tags():
-            unrelevant = ["karneval","market"] #TODO find more
+            unrelevant = ["karneval","market","riot","protest","demonstration"] #TODO find more
 
             for line in self.files:
                 count = 0
-                xml = minidom.parseString(line)
+                xml = minidom.parseString(line.encode('utf-8'))
                 photo = xml.getElementsByTagName("photo")[0]
                 if photo.hasAttribute('tags'):
                     tags = photo.getAttribute('tags')
@@ -85,14 +85,14 @@ class rate_method:
         def rate_views():
             maxViews = 0
             for line in self.files:
-                xml = minidom.parseString(line)
+                xml = minidom.parseString(line.encode('utf-8'))
                 photo = xml.getElementsByTagName("photo")[0]
                 if photo.hasAttribute('views'):
                     views = int(photo.getAttribute('views'))
                     if views>maxViews:
                         maxViews = views
             for line in self.files:
-                xml = minidom.parseString(line)
+                xml = minidom.parseString(line.encode('utf-8'))
                 photo = xml.getElementsByTagName("photo")[0]
                 if photo.hasAttribute('views'):
                     views = int(photo.getAttribute('views'))
