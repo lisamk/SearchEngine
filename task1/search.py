@@ -6,6 +6,8 @@ import config
 import cv2
 import os
 from model import *
+import urllib
+import numpy as np
 
 class rate_method:
     images = []
@@ -21,7 +23,7 @@ class rate_method:
         def rate_name():
 
             # 1 if in file name, else 0
-            with zipfile.ZipFile(config.data_path+'desccred.zip') as z:
+            with zipfile.ZipFile(config.data_path+'testG.zip') as z:
                 for filename in z.namelist():
                   if not os.path.isdir(filename):
                         with z.open(filename, 'r') as f:
@@ -101,42 +103,45 @@ class rate_method:
                     self.views_score.append(0.5)
 
         def rate_face():
-            def checkForFaces(file):
-                face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-
-                img = cv2.imread(file)
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            def checkForFaces(url):
+                resp = urllib.urlopen(url)
+                image = np.array(bytearray(resp.read()), dtype="uint8")
+                image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+                face_cascade = cv2.CascadeClassifier('../haarcascade_frontalface_default.xml')
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
                 # Only face in front of camera detected
                 # with this parameters some pictures without faces are also detected
                 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.03,
-                                                      minNeighbors=25, minSize=(70, 70))
-                for (x, y, w, h) in faces:
-                    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                                                      minNeighbors=25, minSize=(70, 70),
+                                                      flags = cv2.cv.CV_HAAR_SCALE_IMAGE)
+                #for (x, y, w, h) in faces:
+                    #cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 if len(faces) > 0:
                     return True
                 else:
                     return False
-
-            folder = config.data_path+'img'
             for line in self.files:
-                xml = minidom.parseString(line)
+                xml = minidom.parseString(line.encode('utf-8'))
                 photo = xml.getElementsByTagName("photo")[0]
-                id = photo.getAttribute('id')
-                for filename in os.listdir(folder):
-                    if not os.path.isdir(filename):
-                        if ".jpg" in filename and id in filename:
-                            tmp = checkForFaces(folder + filename)
-                            if tmp:
-                                self.face_score.append(1)
-                            else:
-                                self.face_score.append(0)
+                url = photo.getAttribute('url_b')
+
+                #for filename in os.listdir(folder):
+                 #   if not os.path.isdir(filename):
+                  #      if ".jpg" in filename and id in filename:
+                   #         tmp = checkForFaces(folder + filename)
+
+                tmp = checkForFaces(url)
+                if tmp:
+                   self.face_score.append(1)
+                else:
+                    self.face_score.append(0)
 
         rate_name()
        # rate_distance()
         rate_tags()
         rate_views()
-      #  rate_face()
+        rate_face()
         for i in range(0, len(s.files)):
             self.images.append(image(s.files[i], s.name_score[i], 0, s.views_score[i], s.tag_score[i], s.face_score[i]))
 
@@ -144,5 +149,5 @@ s = rate_method()
 s.rate("Barcelona")
 for i in s.images:
     print(i.file);
-    scores = [i.name_score, i.tags_score, i.views_score, i.distance_score]
+    scores = [i.name_score, i.tags_score, i.views_score, i.distance_score, i.face_score]
     print(scores)
