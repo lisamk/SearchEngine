@@ -115,15 +115,15 @@ class rate_method:
                                 photo = xml.getElementsByTagName("photo")[0]
                                 if photo.hasAttribute('views'):
                                     views = int(photo.getAttribute('views'))
-                                    if views > maxViews:
-                                        maxViews = views
+                                    if views > max_view:
+                                        max_view = views
         #rate views
         for line in self.files:
             xml = minidom.parseString(line.encode('utf-8'))
             photo = xml.getElementsByTagName("photo")[0]
             if photo.hasAttribute('views'):
                 views = int(photo.getAttribute('views'))
-                self.views_score.append(1-views/maxViews)
+                self.views_score.append(1-views/max_view)
             else:
                 self.views_score.append(0.5)
 
