@@ -6,7 +6,7 @@ import config
 import cv2
 import os
 from model import *
-import urllib
+import urllib.request
 import numpy as np
 
 class rate_method:
@@ -71,7 +71,7 @@ class rate_method:
 
         def rate_face(line):
             def checkForFaces(url):
-                resp = urllib.urlopen(url)
+                resp = urllib.request.urlopen(url)
                 image = np.array(bytearray(resp.read()), dtype="uint8")
                 image = cv2.imdecode(image, cv2.IMREAD_COLOR)
                 face_cascade = cv2.CascadeClassifier('../haarcascade_frontalface_default.xml')
