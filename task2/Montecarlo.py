@@ -1,11 +1,14 @@
 import random as rand
 import bitarray as ba
 import clustering
+import time
 
 '''
 Searching parameters
 '''
-TRIES = 10
+TRIES = 100
+INFO = 10
+EXPORT_PATH = "/Volumes/Daten/temp/MultimediaSAR/montecarlo/"
 
 '''
 Hyperparameters
@@ -14,16 +17,16 @@ Hyperparameters
 - Settings for Clustering Algorithm:
   - Agglomerative
     - n_clusters (int > 1)
-    - affinity ('euclidean', 'l1', 'l2', 'manhattan', 'cosine', or 'precomputed')
+    - affinity ('euclidean', 'l1', 'l2', 'manhattan', or 'cosine')
     - compute_full_tree fixed to True, because n_clusters will be much smaller than n_samples
     - linkage ('ward', 'complete', or 'average', attention: in case of 'ward' affinity is fixed to 'euclidean')
   - Spectral
     - n_clusters (int > 1)
-    - eigen_solver (None, 'arpack', 'lobpcg', or 'amg', attention: 'amg' needs pyamg installed)
+    - eigen_solver (None, 'arpack'). Decision: 'lobpcg', and 'amg' ignored, due to producing lots of unsolveable errors)
     - random_state fixed to None, because we assume that the random seed value will not influence the results that much
     - n_init (int) take a very close look on that!!!
     - gamma (float, attention: is ignored for affinity='nearest_neighbors')
-    - affinity ('nearest_neighbors', 'precomputed', or 'rbf')
+    - affinity ('nearest_neighbors', or 'rbf')
     - n_neighbors (int, attention: is ignored for affinity='rbf')
     - eigen_tol (float, only if eigen_solver='arpack')
     - assign_labels ('kmeans', or 'discretize')
@@ -34,18 +37,85 @@ Hyperparameters
     - p (float)
 '''
 
+export_file_path = EXPORT_PATH + 'export_' + time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime()) + '.csv'
+print('Save results in: ' + export_file_path)
+
 print('Start montecarlo search with ' + str(TRIES) + ' tries...')
 
-bestMin = {'value': 1.0, 'cnt': -1, 'params': None}
-bestMean = {'value': 0.0, 'cnt': -1, 'params': None}
-bestSD = {'value': 1.0, 'cnt': -1, 'params': None}
-bestMedian = {'value': 0.0, 'cnt': -1, 'params': None}
-bestMax = {'value': 0.0, 'cnt': -1, 'params': None}
+'''current best:'''
+bestMin = {'value': 0.8279595573600828, 'run': -1}
+bestMean = {'value': 0.9109527086662761, 'run': -1}
+bestMedian = {'value': 0.9176957069617215, 'run': -1}
+bestMax = {'value': 0.9280122013218098, 'run': -1}
+'''
+params:
+Run;Min;Mean;SD;Median;Max;Features;Clustering Algorithm;Nr Clusters;Linkage;Affinity;Eigen Solver;N Init;Gamma;Nr Neighbors;Eigen Tolerance;Assign Labels;Eps;Min Samples;Algorithm;P;Compute Full Tree;Random State
+allValues;0,8279595573600828;0,9109527086662761;0,0192724487417;0,9176957069617215;0,9280122013218098;bitarray('1000111110');Spectral;32;complete;rbf;None;10;0,8386230792253868;None;0,9260397099520479;discretize;0,701098099179101;12;brute;0,21219346850631682;True;None
+'''
 
-cnts = [0, 0, 0]
 first_loop = True
 
-for cnt in range(TRIES):
+def write_results(run, results, first, features_map, clustering_algorithm, n_clusters, linkage, affinity, eigen_solver,
+                  n_init, gamma, n_neighbors, eigen_tol, assign_labels, eps, min_samples, algorithm, p,
+                  compute_full_tree = True, random_state = None):
+    with open(export_file_path, mode='a') as export_file:
+        if first:
+            export_file.write("Run;Min;Mean;SD;Median;Max;Features;Clustering Algorithm;Nr Clusters;Linkage;"
+                              + "Affinity;Eigen Solver;N Init;Gamma;Nr Neighbors;Eigen Tolerance;Assign Labels;Eps;"
+                              + "Min Samples;Algorithm;P;Compute Full Tree;Random State\r\n")
+
+        result_string = str(run) + "\t" + str(results['min']) + "\t" + str(results['mean']) + "\t" + str(results['sd'])\
+                        + "\t" + str(results['median']) + "\t" + str(results['max']) + "\t" + str(features_map) + "\t"\
+                        + str(clustering_algorithm) + "\t" + str(n_clusters) + "\t" + str(linkage) + "\t"\
+                        + str(affinity) + "\t" + str(eigen_solver) + "\t" + str(n_init) + "\t" + str(gamma) + "\t"\
+                        + str(n_neighbors) + "\t" + str(eigen_tol) + "\t" + str(assign_labels) + "\t" + str(eps) + "\t"\
+                        + str(min_samples) + "\t" + str(algorithm) + "\t" + str(p) + "\t" + str(compute_full_tree)\
+                        + "\t" + str(random_state) + "\r\n"
+        result_string = result_string.replace('\t', ';')
+        result_string = result_string.replace('.', ',')
+        export_file.write(result_string)
+
+        '''Check for new best:'''
+        _min = False
+        if bestMin['value'] < results['min']:
+            _min = True
+            bestMin['value'] = results['min']
+            bestMin['run'] = run
+        _mean = False
+        if bestMean['value'] < results['mean']:
+            _mean = True
+            bestMean['value'] = results['mean']
+            bestMean['run'] = run
+        _median = False
+        if bestMedian['value'] < results['median']:
+            _median = True
+            bestMedian['value'] = results['median']
+            bestMedian['run'] = run
+        _max = False
+        if bestMax['value'] < results['max']:
+            _max = True
+            bestMax['value'] = results['max']
+            bestMax['run'] = run
+        if _min or _mean or _median or _max:
+            print("\n\n####################")
+            print("New best result found for run <" + str(run) + "> with these values:")
+            if _min:
+                print("Min: " + str(bestMin['value']))
+            if _mean:
+                print("Mean: " + str(bestMean['value']))
+            if _median:
+                print("Median: " + str(bestMedian['value']))
+            if _max:
+                print("Max: " + str(bestMax['value']))
+            print("####################\n\n")
+
+
+''' MAIN '''
+for run in range(TRIES):
+
+    if (not first_loop) and ((run % INFO) == 0):
+        print(str(run) + " tries finished (" + str((run/TRIES*100)) + "%)")
+
     '''
     features_map
       BitArray that represents the chosen features
@@ -72,7 +142,8 @@ for cnt in range(TRIES):
         2 SpectralClustering
         3 DBSCAN
     '''
-    clustering_algorithm = rand.randint(0, 2)
+    clustering_algorithm_values = ['Agglomerative', 'Spectral', 'DBSCAN']
+    clustering_algorithm = rand.randint(0, len(clustering_algorithm_values)-1)
 
     '''
     n_clusters
@@ -97,13 +168,13 @@ for cnt in range(TRIES):
       string that defines the metric used to compute the linkage
       This is only applied in case of Agglomerative or Spectral clustering
       AglomerativeClustering values:
-        'euclidean', 'l1', 'l2', 'manhattan', 'cosine', or 'precomputed'
+        'euclidean', 'l1', 'l2', 'manhattan', or 'cosine'
       SpectralClustering values:
-        'nearest_neighbors', 'precomputed', or 'rbf'
+        'nearest_neighbors', or 'rbf'
     '''
     affinity = None
-    agglomerative_affinity_values = ['euclidean', 'l1', 'l2', 'manhattan', 'cosine', 'precomputed']
-    spectral_affinity_values = ['nearest_neighbors', 'precomputed', 'rbf']
+    agglomerative_affinity_values = ['euclidean', 'l1', 'l2', 'manhattan', 'cosine']
+    spectral_affinity_values = ['nearest_neighbors', 'rbf']
     if clustering_algorithm == 0:
         # Agglomerative Clustering
         if linkage == 'ward':
@@ -126,7 +197,7 @@ for cnt in range(TRIES):
     eigen_solver
       string that describes the eigenvalue decomposition strategy
     '''
-    eigen_solver_values = [None, 'arpack', 'lobpcg', 'amg']
+    eigen_solver_values = [None, 'arpack']#, 'lobpcg', 'amg']
     eigen_solver = eigen_solver_values[rand.randint(0, len(eigen_solver_values)-1)]
 
     '''
@@ -227,20 +298,21 @@ for cnt in range(TRIES):
     '''
     p = rand.uniform(0.0, 1.0)
 
-    if first_loop:
-        print("Min\tMean\tSD\tMedian\tMax")
-        first_loop = False
-
-    cnts[clustering_algorithm] += 1
     try:
         result = clustering.cluster(features_map=features_map, clustering_algorithm=clustering_algorithm, n_clusters=n_clusters,
                                     linkage=linkage, affinity=affinity, compute_full_tree=compute_full_tree,
                                     eigen_solver=eigen_solver, random_state=random_state, n_init=n_init, gamma=gamma,
                                     n_neighbors=n_neighbors, eigen_tol=eigen_tol, assign_labels=assign_labels, eps=eps,
                                     min_samples=min_samples, algorithm=algorithm, p=p)
-        print(str(result['min'])+"\t"+str(result['mean'])+"\t"+str(result['sd'])+"\t"+str(result['median'])+"\t"+str(result['max']))
-    except Exception as ex:
-        clustering_algorithm_values = ['Agglomerative', 'Spectral', 'DBSCAN']
+
+        write_results(run=run, results=result, first=first_loop,
+                      features_map=features_map, clustering_algorithm=clustering_algorithm_values[clustering_algorithm], n_clusters=n_clusters,
+                      linkage=linkage, affinity=affinity, compute_full_tree=compute_full_tree,
+                      eigen_solver=eigen_solver, random_state=random_state, n_init=n_init, gamma=gamma,
+                      n_neighbors=n_neighbors, eigen_tol=eigen_tol, assign_labels=assign_labels, eps=eps,
+                      min_samples=min_samples, algorithm=algorithm, p=p)
+        first_loop = False
+    except ValueError as ex:
         print("\n\nERROR:")
         print(type(ex))
         print(ex)
@@ -264,7 +336,4 @@ for cnt in range(TRIES):
         print("p="+str(p))
         print("\n\n")
 
-print("\n\nAuswertung:")
-print(str(cnts[0]) + " Agglomerative")
-print(str(cnts[1]) + " Spectral")
-print(str(cnts[2]) + " DBSCAN")
+print("Montecarlo search finished!\n\n\n")

@@ -6,7 +6,6 @@ import numpy as np
 import statistics as st
 import bitarray as ba
 import config
-import time
 
 '''
 This is a first start of task 2
@@ -118,7 +117,7 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage, affinity, e
         # use feature array and number of clusters from above
         # use DBSCAN because it does not need the number of clusters
         if clustering_algorithm < 0:
-            print("\n\nInvalid clustering algorithm: " + clustering_algorithm + "!\n\n")
+            print("\n\nInvalid clustering algorithm: " + str(clustering_algorithm) + "!\n\n")
             return
         if clustering_algorithm == 0:
             model = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity, compute_full_tree=compute_full_tree, linkage=linkage)
@@ -127,7 +126,7 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage, affinity, e
         if clustering_algorithm == 2:
             model = DBSCAN(eps=eps, min_samples=min_samples, algorithm=algorithm, p=p, n_jobs=-1)
         if clustering_algorithm > 2:
-            print("\n\nInvalid clustering algorithm: " + clustering_algorithm + "!\n\n")
+            print("\n\nInvalid clustering algorithm: " + str(clustering_algorithm) + "!\n\n")
             return
         model.fit(features)
         # create dictionary { imageID, predictedCluster }
