@@ -7,8 +7,8 @@ import time
 Searching parameters
 '''
 TRIES = 100
-INFO = 10
-EXPORT_PATH = "/Volumes/Daten/temp/MultimediaSAR/montecarlo/"
+INFO = 5
+EXPORT_PATH = "E:\\temp\\MultimediaSAR\\montecarlo\\"
 
 '''
 Hyperparameters
@@ -43,14 +43,16 @@ print('Save results in: ' + export_file_path)
 print('Start montecarlo search with ' + str(TRIES) + ' tries...')
 
 '''current best:'''
-bestMin = {'value': 0.8279595573600828, 'run': -1}
-bestMean = {'value': 0.9109527086662761, 'run': -1}
-bestMedian = {'value': 0.9176957069617215, 'run': -1}
-bestMax = {'value': 0.9280122013218098, 'run': -1}
+bestMin = {'value': 0.850489610699785, 'run': -1}
+bestMean = {'value': 0.9308947015783102, 'run': -1}
+bestMedian = {'value': 0.9365433109179113, 'run': -1}
+bestMax = {'value': 0.9491357397051348, 'run': -1}
 '''
 params:
-Run;Min;Mean;SD;Median;Max;Features;Clustering Algorithm;Nr Clusters;Linkage;Affinity;Eigen Solver;N Init;Gamma;Nr Neighbors;Eigen Tolerance;Assign Labels;Eps;Min Samples;Algorithm;P;Compute Full Tree;Random State
-allValues;0,8279595573600828;0,9109527086662761;0,0192724487417;0,9176957069617215;0,9280122013218098;bitarray('1000111110');Spectral;32;complete;rbf;None;10;0,8386230792253868;None;0,9260397099520479;discretize;0,701098099179101;12;brute;0,21219346850631682;True;None
+Best of;Min;Mean;SD;Median;Max;Features;Clustering Algorithm;Nr Clusters;Linkage;Affinity;Eigen Solver;N Init;Gamma;Nr Neighbors;Eigen Tolerance;Assign Labels;Eps;Min Samples;Algorithm;P;Compute Full Tree;Random State
+min;0,850489610699785;0,9208822182089967;0,0195491632859;0,9244285051156343;0,9410816125860374;bitarray('0011000101');Spectral;60;average;rbf;arpack;18;0,5548634691620746;None;0,44707333740498056;kmeans;0,31798954854813366;6;kd_tree;0,5146490209583798;True;None
+mean,median;0,8488177692858849;0,9308947015783102;0,0187286552409;0,9365433109179113;0,9484239959328927;bitarray('0010100111');Spectral;58;average;nearest_neighbors;None;6;0,22112548670749432;7;0,8750060516023664;discretize;0,4759734903129763;6;auto;0,8283175191480721;True;None
+max;0,8435634105564843;0,9290948360681516;0,0195567939881;0,9361478969838501;0,9491357397051348;bitarray('0001000100');Spectral;59;complete;rbf;None;7;0,30669630330661446;None;0,3987867219650971;kmeans;0,9833346734769856;6;ball_tree;0,8058424195268572;True;None
 '''
 
 first_loop = True
@@ -141,9 +143,13 @@ for run in range(TRIES):
         1 AgglomerativeClustering
         2 SpectralClustering
         3 DBSCAN
+      
+      Decisions:
+        1. try only Spectral Clustering because of very good performances in the first tests
     '''
     clustering_algorithm_values = ['Agglomerative', 'Spectral', 'DBSCAN']
-    clustering_algorithm = rand.randint(0, len(clustering_algorithm_values)-1)
+    #clustering_algorithm = rand.randint(0, len(clustering_algorithm_values)-1)
+    clustering_algorithm = 1
 
     '''
     n_clusters
@@ -152,9 +158,10 @@ for run in range(TRIES):
 
       Decisions for limits:
       1. Init: limit from 10 to 50
-      2.
+      2. limit from 35 to 60 because of very good performances on spectral clustering
+      3. limit from 53 to 60 because of best results on spectral clustering
     '''
-    n_clusters = rand.randint(10, 50)
+    n_clusters = rand.randint(53, 60)
 
     '''
     linkage
@@ -237,12 +244,13 @@ for run in range(TRIES):
 
       Decisions for limits:
       1. Init: limit from 3 to 50, because no prior knowledge
-      2.
+      2. limit from 3 to 30, because of better performances on spectral clustering
+      3. limit from 1 to 30, I want to try this value below 3
     '''
     if affinity == 'rbf':
         n_neighbors = None
     else:
-        n_neighbors = rand.randint(3, 50)
+        n_neighbors = rand.randint(1, 30)
 
     '''
     eigen_tol
@@ -312,7 +320,7 @@ for run in range(TRIES):
                       n_neighbors=n_neighbors, eigen_tol=eigen_tol, assign_labels=assign_labels, eps=eps,
                       min_samples=min_samples, algorithm=algorithm, p=p)
         first_loop = False
-    except ValueError as ex:
+    except Exception as ex:
         print("\n\nERROR:")
         print(type(ex))
         print(ex)
