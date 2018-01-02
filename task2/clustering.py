@@ -117,16 +117,16 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage, affinity, e
 
         # use feature array and number of clusters from above
         # use DBSCAN because it does not need the number of clusters
-        if clustering_algorithm < 1:
+        if clustering_algorithm < 0:
             print("\n\nInvalid clustering algorithm: " + clustering_algorithm + "!\n\n")
             return
-        if clustering_algorithm == 1:
+        if clustering_algorithm == 0:
             model = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity, compute_full_tree=compute_full_tree, linkage=linkage)
-        if clustering_algorithm == 2:
+        if clustering_algorithm == 1:
             model = SpectralClustering(n_clusters=n_clusters, eigen_solver=eigen_solver, random_state=random_state, n_init=n_init, gamma=gamma, affinity=affinity, n_neighbors=n_neighbors, eigen_tol=eigen_tol, assign_labels=assign_labels, n_jobs=-1)
-        if clustering_algorithm == 3:
+        if clustering_algorithm == 2:
             model = DBSCAN(eps=eps, min_samples=min_samples, algorithm=algorithm, p=p, n_jobs=-1)
-        if clustering_algorithm > 3:
+        if clustering_algorithm > 2:
             print("\n\nInvalid clustering algorithm: " + clustering_algorithm + "!\n\n")
             return
         model.fit(features)

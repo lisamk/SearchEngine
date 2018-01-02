@@ -72,7 +72,7 @@ for cnt in range(TRIES):
         2 SpectralClustering
         3 DBSCAN
     '''
-    clustering_algorithm = rand.randint(1, 3)
+    clustering_algorithm = rand.randint(0, 2)
 
     '''
     n_clusters
@@ -104,13 +104,13 @@ for cnt in range(TRIES):
     affinity = None
     agglomerative_affinity_values = ['euclidean', 'l1', 'l2', 'manhattan', 'cosine', 'precomputed']
     spectral_affinity_values = ['nearest_neighbors', 'precomputed', 'rbf']
-    if clustering_algorithm == 1:
+    if clustering_algorithm == 0:
         # Agglomerative Clustering
         if linkage == 'ward':
             affinity = 'euclidean'
         else:
             affinity = agglomerative_affinity_values[rand.randint(0, len(agglomerative_affinity_values) - 1)]
-    if clustering_algorithm == 2:
+    if clustering_algorithm == 1:
         # Spectral Clustering
         affinity = spectral_affinity_values[rand.randint(0, len(spectral_affinity_values) - 1)]
 
@@ -231,7 +231,7 @@ for cnt in range(TRIES):
         print("Min\tMean\tSD\tMedian\tMax")
         first_loop = False
 
-    cnts[clustering_algorithm-1] += 1
+    cnts[clustering_algorithm] += 1
     try:
         result = clustering.cluster(features_map=features_map, clustering_algorithm=clustering_algorithm, n_clusters=n_clusters,
                                     linkage=linkage, affinity=affinity, compute_full_tree=compute_full_tree,
