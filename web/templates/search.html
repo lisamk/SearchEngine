@@ -1,0 +1,76 @@
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
+</head>
+<body>
+<h1>Image Search</h1>
+<h2>Team 4</h2>
+<p>Please select a location of the list:
+<form action="http://localhost:5000/search" method="POST">
+    <select name="location" size="1">
+        {% if data %}
+        {% for loc in locs %}
+        {% if data["location"]==loc[0] %}
+        <option value="{{loc[0]}}" selected>{{loc[1]}}</option>
+        {% else %}
+        <option value="{{loc[0]}}">{{loc[1]}}</option>
+        {% endif %}
+        {% endfor %}
+        {% else %}
+        {% for loc in locs %}
+        <option value="{{loc[0]}}">{{loc[1]}}</option>
+        {% endfor %}
+        {% endif %}
+    </select>
+</p>
+<label for="number">Number of images: </label>
+<select id="number" name="number" size="1">
+    {% if data %}
+    {% if data["number"]=="5" %}
+    <option value="5" selected>5</option>
+    {% else %}
+    <option value="5">5</option>
+    {% endif %}
+    {% if data["number"]=="10" %}
+    <option value="10" selected>10</option>
+    {% else %}
+    <option value="10">10</option>
+    {% endif %}
+    {% if data["number"]=="20" %}
+    <option value="20" selected>20</option>
+    {% else %}
+    <option value="20">20</option>
+    {% endif %}
+    {% if data["number"]=="50" %}
+    <option value="50" selected>50</option>
+    {% else %}
+    <option value="50">50</option>
+    {% endif %}
+    {% if data["number"]=="0" %}
+    <option value="0" selected>All</option>
+    {% else %}
+    <option value="0">All</option>
+    {% endif %}
+    {% else %}
+    <option value="5">5</option>
+    <option value="10">10</option>
+    <option value="20" selected>20</option>
+    <option value="50">50</option>
+    <option value="0">All</option>
+    {% endif %}
+
+</select>
+<input type="submit" value="search"/>
+</form>
+
+{% if data %}
+{% for im in imgs %}
+<a href="{{im[0]}}">
+    <img class="{{im[1]}}" src="{{im[0]}}">
+</a>
+{% endfor %}
+{% endif %}
+
+
+</body>
+</html>
