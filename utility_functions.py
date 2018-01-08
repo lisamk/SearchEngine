@@ -1,7 +1,7 @@
 import random
 import operator
 from audioop import reverse
-
+import time
 from sklearn.metrics import adjusted_mutual_info_score
 from sklearn.metrics import adjusted_rand_score
 
@@ -73,6 +73,17 @@ def getImages(location_name):
                 names.append(loc.split(".")[0])
             return names
 
+def getImagesDev(location_name):
+    f = open("imgFolderContent_Dev.csv", "r")
+    text = f.read().split("\n")
+    names = []
+    for line in text:
+        l = line.split(",")
+        if l[0] == location_name:
+            for loc in l[1:]:
+                names.append(loc.split(".")[0])
+            return names
+
 
 def clusterLocation(location_name, dev=False):
     if dev:
@@ -131,14 +142,195 @@ def evaluateClustering():
             pred_arr.append(pred[t])
 
         score = adjusted_rand_score(truth_arr, pred_arr)
-        print(location + ": " + str(score))
+        # print(location + ": " + str(score))
         scores.append(score)
 
     scores = np.array(scores)
-    print("\nEvaluated with adjusted rand index")
-    print("Avg: " + str(np.sum(scores) / len(scores)))
-    print("Min: " + str(np.min(scores)))
-    print("Max: " + str(np.max(scores)))
+
+    avg = np.sum(scores) / len(scores)
+    median = np.median(scores)
+    minimum = np.min(scores)
+    maximum = np.max(scores)
+    # print("\nEvaluated with adjusted rand index")
+    # print("Avg: " + str(avg))
+    # print("Median: " + str(median))
+    # print("Min: " + str(min))
+    # print("Max: " + str(max))
+
+    return avg, median, minimum, maximum
+
+
+'''
+        0 CM            512
+        1 CM3x3         256
+        2 CN            128
+        3 CN3x3         64
+        4 CSD           32
+        5 GLRLM         16
+        6 GLRLM3x3      8
+        7 HOG           4
+        8 LBP           2
+        9 LBP3x3        1
+    '''
+
+
+def parameterSearch():
+    results = np.zeros((30, 1024, 1))
+    location_array = getLocationNames(dev=True)
+    print(location_array)
+    feature_array = []
+
+    f = open("result.csv", "w")
+
+    for j in range(len(location_array)):
+        location = location_array[j]
+        df_feature = pd.read_csv(DEV_PATH + FEATURE_PATH + location + " CM.csv", sep=",", header=None)
+        df_feature = df_feature.drop([0], axis=1)
+
+        # LBP3x3
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " LBP3x3.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # LBP
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " LBP.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # HOG
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " HOG.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # GLRLM3x3
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " GLRLM3x3.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # GLRLM
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " GLRLM.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # CSD
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " CSD.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # CN3x3
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " CN3x3.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # CN
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " CN.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # CM3x3
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " CM3x3.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+        # CM
+        df_feature = (pd.read_csv(DEV_PATH + FEATURE_PATH + location + " CM.csv", sep=",", header=None))
+        df_feature = df_feature.drop([0], axis=1)
+        feature_array.append(df_feature)
+
+        for i in range(1024):
+            val = i + 1
+            first = True
+            features = []
+            if val >= 512:
+                val -= 512
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(512))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(512))]), axis=1)
+            if val >= 256:
+                val -= 256
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(256))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(256))]), axis=1)
+            if val >= 128:
+                val -= 128
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(128))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(128))]), axis=1)
+            if val >= 64:
+                val -= 64
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(64))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(64))]), axis=1)
+            if val >= 32:
+                val -= 32
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(32))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(32))]), axis=1)
+            if val >= 16:
+                val -= 16
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(16))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(16))]), axis=1)
+            if val >= 8:
+                val -= 8
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(8))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(8))]), axis=1)
+            if val >= 4:
+                val -= 4
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(4))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(4))]), axis=1)
+            if val >= 2:
+                val -= 2
+                if first:
+                    first = False
+                    features = feature_array[int(np.log2(2))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(2))]), axis=1)
+            if val >= 1:
+                val -= 1
+                if first:
+                    first = False
+                    features = feature_array[int(int(np.log2(1)))]
+                else:
+                    features = np.concatenate((features, feature_array[int(np.log2(1))]), axis=1)
+
+            n_clusters = 25
+            df_feature = pd.read_csv(DEV_PATH + FEATURE_PATH + location + " CM.csv", sep=",", header=None)
+            ids = np.array(df_feature[0])
+            model = AgglomerativeClustering(n_clusters=n_clusters,
+                                            linkage="ward").fit(features)
+            prediction = dict(zip(ids, model.labels_))
+            df_gt = pd.read_csv(DEV_PATH + GROUND_TRUTH_PATH + location + " dGT.txt", sep=",", header=None)
+            truth = dict(zip(df_gt[0], df_gt[1]))
+
+            truth_arr = []
+            pred_arr = []
+            for t in truth.keys():
+                if t in prediction.keys():
+                    truth_arr.append(truth[t])
+                    pred_arr.append(prediction[t])
+
+            score = adjusted_rand_score(truth_arr, pred_arr)
+            results[j, i] = score
+
+        print("\nResult for " + location_array[j])
+        print("Min: " + str(np.min(results[j,])))
+        print("Max: " + str(np.max(results[j,])))
+        print("Median:" + str(np.median(results[j,])))
+        print("Average: " + str(np.average(results[j,])))
+
+        print("Best: " + str(np.argmax(results)))
+        f.write(location_array[j] + "," + str(np.min(results[j,])) + "," + str(np.max(results[j,])) + "," + str(
+            np.median(results[j,])) + "," + str(np.average(results[j,])) + "\n")
 
 
 def reorderImages(image_dict, location_name, dev=False):
@@ -157,6 +349,7 @@ def reorderImages(image_dict, location_name, dev=False):
                     ranked_list.append(i[0])
 
     return ranked_list
+
 
 # imgs = [
 #     10045759763,
@@ -381,8 +574,13 @@ def reorderImages(image_dict, location_name, dev=False):
 
 
 # print(clusterLocation("acropolis_athens",dev=False))
-#print(createClusterFile(dev=False))
+# print(createClusterFile(dev=False))
 # print(getClusterData("acropolis_athens"))
 # evaluateClustering()
 
 # print(reorderImages(img_dict, "acropolis_athens", dev=True))
+
+#start_time = time.time()
+#parameterSearch()
+#elapsed_time = time.time() - start_time
+#print(elapsed_time)
