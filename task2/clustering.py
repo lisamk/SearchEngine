@@ -1,6 +1,7 @@
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import SpectralClustering
 from sklearn.cluster import DBSCAN
+from sklearn.metrics.cluster import adjusted_rand_score
 import pandas as pd
 import numpy as np
 import statistics as st
@@ -38,7 +39,13 @@ DATA_DIR = config.data_path
 FEATURE_PATH = config.feature_path
 GROUND_TRUTH_PATH = config.ground_truth_path
 
-def cluster(features_map, clustering_algorithm, n_clusters, linkage, affinity, eigen_solver, n_init, gamma, n_neighbors, eigen_tol, assign_labels, eps, min_samples, algorithm, p, compute_full_tree = True, random_state = None) :
+def cluster(features_map, clustering_algorithm, n_clusters, linkage='ward', affinity=None, eigen_solver=None, n_init=10, gamma=1.0, n_neighbors=10, eigen_tol=0.0, assign_labels='kmeans', eps=0.5, min_samples=5, algorithm='auto', p=None, compute_full_tree = True, random_state = None):
+    if affinity is None:
+        if clustering_algorithm == 0:
+            affinity = 'euclidean'
+        if clustering_algorithm == 1:
+            affinity = 'rbf'
+
     # do clustering for every location we have in the dev set
     # read locations file
     df_locations = pd.read_csv(DATA_DIR + "poiNameCorrespondences.txt", sep="\t", header=None)
@@ -122,7 +129,7 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage, affinity, e
         if clustering_algorithm == 0:
             model = AgglomerativeClustering(n_clusters=n_clusters, affinity=affinity, compute_full_tree=compute_full_tree, linkage=linkage)
         if clustering_algorithm == 1:
-            model = SpectralClustering(n_clusters=n_clusters, eigen_solver=eigen_solver, random_state=random_state, n_init=n_init, gamma=gamma, affinity=affinity, n_neighbors=n_neighbors, eigen_tol=eigen_tol, assign_labels=assign_labels, n_jobs=-1)
+            model = SpectralClustering(n_clusters=n_clusters, eigen_solver=eigen_solver, random_state=random_state, n_init=n_init, gamma=gamma, affinity=affinity, n_neighbors=n_neighbors, eigen_tol=eigen_tol, assign_labels=assign_labels, n_jobs=1)
         if clustering_algorithm == 2:
             model = DBSCAN(eps=eps, min_samples=min_samples, algorithm=algorithm, p=p, n_jobs=1)
         if clustering_algorithm > 2:
@@ -136,25 +143,25 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage, affinity, e
         # additionally the predictions are now in the same order as the truth values
         prediction_subset = {x: prediction[x] for x in truth.keys() if x in prediction}
 
-        # in the next step we pairwisely compare each key with each other
-        # if they are in the same cluster in the each dictionary
-        correct = 0
-        wrong = 0
-        for key1 in prediction_subset.keys():
-            for key2 in prediction_subset.keys():
-                if key1 != key2:
-                    if ((truth.get(key1) == truth.get(key2) and (
-                                prediction_subset.get(key1) == prediction_subset.get(key2))) or (
-                                    truth.get(key1) != truth.get(key2) and (
-                                        prediction_subset.get(key1) != prediction_subset.get(key2)))):
-                        correct += 1
-                    else:
-                        wrong += 1
-
-        # the performance is measured by Rand index
-        # https://en.wikipedia.org/wiki/Rand_index
-        score.append(correct / (correct + wrong))
+        # calculate performance using adjusted rand score:
+        ars = adjusted_rand_score(list(truth.values()), list(prediction_subset.values()))
+        # move score from [-1;1] to [0;1] and add to score array
+        score.append(ars / 2 + 0.5)
 
     # calculate statistics over all scores
-    #print(str(min(score))+"\t"+(str(sum(score)/len(score)))+"\t"+str(np.std(score))+"\t"+str(st.median(score))+"\t"+str(max(score)))
     return {'min': min(score), 'mean': (sum(score)/len(score)), 'sd': np.std(score), 'median': st.median(score), 'max': max(score)}
+
+# Testing code
+'''
+algo = 1
+n_clusters = 25
+featuremap = ba.bitarray(('{0:010b}'.format(1))[-10:])
+score = cluster(featuremap, algo, n_clusters)
+print("Score for (n_clusters=" + str(n_clusters) + ", algorithm=" +
+      str(algo) + ", featuremap=" + str(featuremap) + ") with these values:")
+print("\tMin: " + str(score['min']))
+print("\tMean: " + str(score['mean']))
+print("\tSD: " + str(score['sd']))
+print("\tMedian: " + str(score['median']))
+print("\tMax: " + str(score['max']))
+'''
