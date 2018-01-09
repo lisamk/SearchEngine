@@ -73,6 +73,7 @@ def getImages(location_name):
                 names.append(loc.split(".")[0])
             return names
 
+
 def getImagesDev(location_name):
     f = open("imgFolderContent_Dev.csv", "r")
     text = f.read().split("\n")
@@ -351,6 +352,40 @@ def reorderImages(image_dict, location_name, dev=False):
     return ranked_list
 
 
+def evaluateClustering():
+    createClusterFile(dev=True)
+    scores = []
+    for location in getLocationNames(dev=True):
+        df_gt = pd.read_csv(DEV_PATH + GROUND_TRUTH_PATH + location + " dGT.txt", sep=",", header=None)
+        truth = dict(zip(df_gt[0], df_gt[1]))
+        pred = getClusterData(location)
+
+        truth_arr = []
+        pred_arr = []
+        for t in truth.keys():
+            truth_arr.append(truth[t])
+            pred_arr.append(pred[t])
+
+        score = adjusted_rand_score(truth_arr, pred_arr)
+        # print(location + ": " + str(score))
+        scores.append(score)
+
+    scores = np.array(scores)
+
+    avg = np.sum(scores) / len(scores)
+    median = np.median(scores)
+    minimum = np.min(scores)
+    maximum = np.max(scores)
+    # print("\nEvaluated with adjusted rand index")
+    # print("Avg: " + str(avg))
+    # print("Median: " + str(median))
+    # print("Min: " + str(min))
+    # print("Max: " + str(max))
+
+    return avg, median, minimum, maximum
+
+
+
 # imgs = [
 #     10045759763,
 #     10045795353,
@@ -580,7 +615,7 @@ def reorderImages(image_dict, location_name, dev=False):
 
 # print(reorderImages(img_dict, "acropolis_athens", dev=True))
 
-#start_time = time.time()
-#parameterSearch()
-#elapsed_time = time.time() - start_time
-#print(elapsed_time)
+# start_time = time.time()
+# parameterSearch()
+# elapsed_time = time.time() - start_time
+# print(elapsed_time)
