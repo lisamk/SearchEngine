@@ -1,0 +1,56 @@
+body            { font-family: sans-serif; background: #eee; }
+a, h1, h2       { color: #377ba8; }
+h1, h2          { font-family: 'Georgia', serif; margin: 0; }
+h1              { border-bottom: 2px solid #eee; }
+h2              { font-size: 1.2em; }
+
+.page           { margin: 2em auto; width: 35em; border: 5px solid #ccc;
+                  padding: 0.8em; background: white; }
+.entries        { list-style: none; margin: 0; padding: 0; }
+.entries li     { margin: 0.8em 1.2em; }
+.entries li h2  { margin-left: -1em; }
+.add-entry      { font-size: 0.9em; border-bottom: 1px solid #ccc; }
+.add-entry dl   { font-weight: bold; }
+.metanav        { text-align: right; font-size: 0.8em; padding: 0.3em;
+                  margin-bottom: 1em; background: #fafafa; }
+.flash          { background: #cee5F5; padding: 0.5em;
+                  border: 1px solid #aacbe2; }
+.error          { background: #f0d6d6; padding: 0.5em; }
+
+img {
+    border-width: 10px;
+    border-radius: 5px;
+    width: 150px;
+    border-style: solid;
+}
+
+.c1 {    border-color: #e6194b;  }
+.c2 {    border-color: #3cb44b;  }
+.c3 {    border-color: #ffe119;  }
+.c4 {    border-color: #0082c8;  }
+.c5 {    border-color: #f58231;  }
+.c6 {    border-color: #911eb4;  }
+.c7 {    border-color: #46f0f0;  }
+.c8 {    border-color: #f032e6;  }
+.c9 {    border-color: #d2f53c;  }
+.c10 {    border-color: #fabebe;  }
+.c11 {    border-color: #008080;  }
+.c12 {    border-color: #e6beff;  }
+.c13 {    border-color: #aa6e28;  }
+.c14 {    border-color: #fffac8;  }
+.c15 {    border-color: #800000;  }
+.c16 {    border-color: #aaffc3;  }
+.c17 {    border-color: #808000;  }
+.c18 {    border-color: #ffd8b1;  }
+.c19 {    border-color: #000080;  }
+.c20 {    border-color: #808080;  }
+.c21 {    border-color: #FFFFFF;  }
+.c22 {    border-color: #000000;  }
+.c23 {    border-color: #ffbbff;  }
+.c24 {    border-color: #ff0000;  }
+.c25 {    border-color: #00ff00;  }
+.c26 {    border-color: #0000ff;  }
+.c27 {    border-color: #ffff00;  }
+.c28 {    border-color: #00ffff;  }
+.c29 {    border-color: #ff00ff;  }
+.c30 {    border-color: #f0f0f0;  }
