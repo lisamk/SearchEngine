@@ -1,8 +1,7 @@
 import bitarray as ba
-import clustering
+from clustering import *
 import time
-
-EXPORT_PATH = "E:\\temp\\MultimediaSAR\\hyperparameter\\"
+from config import *
 
 export_file_path = EXPORT_PATH + 'export_' + time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime()) + '.csv'
 print('Save results in: ' + export_file_path)
@@ -57,15 +56,15 @@ def write_results(clustering_algorithm, n_clusters, results, first, features_map
             print("####################")
 
 ''' Search Main '''
-algorithms = ['Agglomerative', 'Spectral', 'DBSCAN']
-do_for_algos = [0, 2]
+algorithms = ['Agglomerative', 'Spectral', 'DBSCAN', 'Gaussian']
+do_for_algos = [3]
 first_run = True
 # for given clustering algorithms
 for algo in do_for_algos:
     print(str(time.strftime('\n\n%Y-%m-%d-%H-%M-%S', time.localtime())) + ": start with algorithm " + str(algorithms[algo]))
     # for 10, 15, 20, 25, and 30 clusters
     for nclust in range(10, 31, 5):
-        if algo < 2:
+        if algo != 2:
             print(str(time.strftime('\n\n%Y-%m-%d-%H-%M-%S', time.localtime())) + ": start with " + str(nclust) + " clusters")
         # for every combination of 1 or more features
         for feature in range(1, 1024):
@@ -84,7 +83,7 @@ for algo in do_for_algos:
                 print(type(ex))
                 print(ex)
                 print("For search:")
-                if algo < 2:
+                if algo != 2:
                     print("\tn_clusters = " + str(nclust))
                 print("\talgorithm  = " + str(algorithms[algo]))
                 print("\tfeaturemap = " + str(featuremap))

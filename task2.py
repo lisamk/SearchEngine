@@ -9,8 +9,7 @@ from config import *
 import numpy as np
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.cluster import DBSCAN
-from sklearn.cluster import SpectralClustering
+from sklearn.decomposition import PCA
 
 
 def getLocationList(dev=False):
@@ -92,15 +91,50 @@ def clusterLocation(location_name, dev=False):
     else:
         path = TEST_PATH
 
-    n_clusters = 25
-    df_feature = pd.read_csv(path + FEATURE_PATH + location_name + " CM.csv", sep=",", header=None)
-    ids = np.array(df_feature[0])
-    df_feature = df_feature.drop([0], axis=1)
-    features = np.array(df_feature)
+    '''
+    current cluster approach:
+        Agglomerative Clustering with 30 Clusters
+        On first 15 PCA components of the features (CN, CN3x3, CSD, HOG)
+        features and components are normalized between 0 and 1 before using them
+        Performance on devset (adjusted rand score from 0 to 1 in %):
+            Min:    52.2998%
+            Mean:   56.8828%
+            SD:      3.5724%
+            Median: 56.1031%
+            Max:    69.4953%
+    '''
+    n_clusters = 30
+    # read all feature files
+    features_df = []
+    features_df.append(pd.read_csv(path + FEATURE_PATH + location_name + " CN.csv", sep=",", header=None))
+    features_df.append(pd.read_csv(path + FEATURE_PATH + location_name + " CN3x3.csv", sep=",", header=None))
+    features_df.append(pd.read_csv(path + FEATURE_PATH + location_name + " CSD.csv", sep=",", header=None))
+    features_df.append(pd.read_csv(path + FEATURE_PATH + location_name + " HOG.csv", sep=",", header=None))
+    # save ids
+    ids = np.array(features_df[0][0])
+    # remove ids from features
+    first = True
+    for df_feature in features_df:
+        # remove the first column with the image ids
+        df_feature = df_feature.drop([0], axis=1)
+        # create an array of all feautures [id,f1,f2,....]
+        if first:
+            features = np.array(df_feature)
+        else:
+            features = np.concatenate((features, np.array(df_feature)), axis=1)
+        first = False
+    # normalize every feature column
+    features = (features - features.min(axis=1)[:,np.newaxis])/(features.max(axis=1)[:,np.newaxis]-features.min(axis=1)[:,np.newaxis])
+    # calculate pca components which are used instead of the real features
+    pca = PCA(n_components=15)
+    data = pca.fit_transform(features)
+    # normalize the components columns
+    data = (data - data.min(axis=1)[:,np.newaxis])/(data.max(axis=1)[:,np.newaxis]-data.min(axis=1)[:,np.newaxis])
 
-    model = AgglomerativeClustering(n_clusters=n_clusters,
-                                    linkage="ward").fit(features)
-    prediction = dict(zip(ids, model.labels_))
+    # create clustering model
+    model = AgglomerativeClustering(n_clusters=n_clusters, linkage="ward")
+    # cluster location and return prediction
+    prediction = dict(zip(ids, model.fit_predict(data)))
     return prediction
 
 

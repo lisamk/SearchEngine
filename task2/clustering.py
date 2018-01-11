@@ -1,6 +1,8 @@
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import SpectralClustering
 from sklearn.cluster import DBSCAN
+from sklearn.mixture import GaussianMixture
+from sklearn.decomposition import PCA
 from sklearn.metrics.cluster import adjusted_rand_score
 import pandas as pd
 import numpy as np
@@ -106,8 +108,6 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage='ward', affi
 
         # read the ids into an array
         ids = np.array(features_df[0][0])
-        # start with id column and remove later
-        #features = ids
         first = True
         for df_feature in features_df:
             # remove the first column with the image ids
@@ -118,8 +118,14 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage='ward', affi
             else:
                 features = np.concatenate((features, np.array(df_feature)), axis=1)
             first = False
-        # now remove the initially added ids
-        #features = features[1:]
+
+        # normalize every feature column
+        features = (features - features.min(axis=1)[:,np.newaxis])/(features.max(axis=1)[:,np.newaxis]-features.min(axis=1)[:,np.newaxis])
+        # calculate pca components which are used instead of the real features
+        pca = PCA(n_components=15)
+        data = pca.fit_transform(features)
+        # normalize the components columns
+        data = (data - data.min(axis=1)[:,np.newaxis])/(data.max(axis=1)[:,np.newaxis]-data.min(axis=1)[:,np.newaxis])
 
         # use feature array and number of clusters from above
         # use DBSCAN because it does not need the number of clusters
@@ -132,12 +138,17 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage='ward', affi
             model = SpectralClustering(n_clusters=n_clusters, eigen_solver=eigen_solver, random_state=random_state, n_init=n_init, gamma=gamma, affinity=affinity, n_neighbors=n_neighbors, eigen_tol=eigen_tol, assign_labels=assign_labels, n_jobs=1)
         if clustering_algorithm == 2:
             model = DBSCAN(eps=eps, min_samples=min_samples, algorithm=algorithm, p=p, n_jobs=1)
-        if clustering_algorithm > 2:
+        if clustering_algorithm == 3:
+            model = GaussianMixture(n_components=n_clusters)
+        if clustering_algorithm > 3:
             print("\n\nInvalid clustering algorithm: " + str(clustering_algorithm) + "!\n\n")
             return
-        model.fit(features)
         # create dictionary { imageID, predictedCluster }
-        prediction = dict(zip(ids, model.labels_))
+        if clustering_algorithm == 3:
+            model.fit(data)
+            prediction = dict(zip(ids, model.predict(data)))
+        else:
+            prediction = dict(zip(ids, model.fit_predict(data)))
 
         # there isn't a ground truth for each image, so we can use the subset for comparision
         # additionally the predictions are now in the same order as the truth values
@@ -153,9 +164,9 @@ def cluster(features_map, clustering_algorithm, n_clusters, linkage='ward', affi
 
 # Testing code
 '''
-algo = 1
+algo = 3
 n_clusters = 25
-featuremap = ba.bitarray(('{0:010b}'.format(1))[-10:])
+featuremap = ba.bitarray(('{0:010b}'.format(9))[-10:])
 score = cluster(featuremap, algo, n_clusters)
 print("Score for (n_clusters=" + str(n_clusters) + ", algorithm=" +
       str(algo) + ", featuremap=" + str(featuremap) + ") with these values:")
