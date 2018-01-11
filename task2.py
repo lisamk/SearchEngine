@@ -84,7 +84,6 @@ def getImagesDev(location_name):
                 names.append(loc.split(".")[0])
             return names
 
-
 def clusterLocation(location_name, dev=False):
     if dev:
         path = DEV_PATH
@@ -136,7 +135,6 @@ def clusterLocation(location_name, dev=False):
     # cluster location and return prediction
     prediction = dict(zip(ids, model.fit_predict(data)))
     return prediction
-
 
 def createClusterFile(dev=False):
     f = open("clusterData.csv", "w")
@@ -390,7 +388,7 @@ def evaluateClustering():
     createClusterFile(dev=True)
     scores = []
     for location in getLocationNames(dev=True):
-        df_gt = pd.read_csv(DEV_PATH + GROUND_TRUTH_PATH + location + " dGT.txt", sep=",", header=None)
+        df_gt = pd.read_csv(DEV_PATH + CLUSTER_GROUND_TRUTH_PATH + location + " dGT.txt", sep=",", header=None)
         truth = dict(zip(df_gt[0], df_gt[1]))
         pred = getClusterData(location)
 
@@ -417,7 +415,6 @@ def evaluateClustering():
     # print("Max: " + str(max))
 
     return avg, median, minimum, maximum
-
 
 
 # imgs = [
@@ -646,9 +643,10 @@ def evaluateClustering():
 # print(createClusterFile(dev=False))
 # print(getClusterData("acropolis_athens"))
 # evaluateClustering()
+#createClusterFile()
 
 # print(reorderImages(img_dict, "acropolis_athens", dev=True))
-
+#print(evaluateClustering())
 # start_time = time.time()
 # parameterSearch()
 # elapsed_time = time.time() - start_time

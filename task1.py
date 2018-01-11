@@ -41,18 +41,19 @@ def haversine(lon1, lat1, lon2, lat2):
     r = 6371  # Radius of earth in kilometers. Use 3956 for miles
     return c * r
 
-
 def getFeatures(location, dev=False):
     if dev:
         path = DEV_PATH
         topic = DEV_TOPIC_PATH
         text_path = DEV_TEXT_PATH
         text_poi_path = DEV_TEXT_POI_PATH
+        faces_path = "faceScoresDev.csv"
     else:
         path = TEST_PATH
         topic = TEST_TOPIC_PATH
         text_path = TEST_TEXT_PATH
         text_poi_path = TEST_TEXT_POI_PATH
+        faces_path = "faceScores.csv"
 
     ids = []
     distances = []
@@ -78,7 +79,15 @@ def getFeatures(location, dev=False):
         ids.append(int(t.attrib["id"]))
         views.append(np.log10(float(t.attrib["views"]) + 0.00001))
         ranks.append(float(t.attrib["rank"]))
-        distances.append(haversine(long_poi, lat_poi, float(t.attrib["longitude"]), float(t.attrib["latitude"])))
+
+
+        long_photo = float(t.attrib["longitude"])
+        lat_photo = float(t.attrib["latitude"])
+
+        if long_photo > 0 and lat_photo > 0:
+            distances.append(haversine(long_poi, lat_poi, long_photo, lat_photo))
+        else:
+            distances.append(0.0)
 
     ranks = [i / max(ranks) for i in ranks]
     features = dict(zip(ids, [list(a) for a in zip(distances, ranks, views)]))
@@ -111,6 +120,16 @@ def getFeatures(location, dev=False):
                 score += tf_idf
 
             features[im].append(score / poi_score)
+
+    f = open(faces_path, "r")
+
+    for line in f.readlines():
+        id = int(line.split(",")[0].strip())
+        face = float(line.split(",")[1][0])
+        if id in features.keys():
+            if len(features[id]) < 5:
+               features[id].append(face)
+
 
     return features
 
@@ -174,7 +193,6 @@ def trainModel(dev=False):
 
     #    rf = RandomForestClassifier(n_estimators=10000, oob_score=True, random_state=1356128)
     rf = RandomForestRegressor(n_estimators=10000, oob_score=True, random_state=1356128)
-
     rf.fit(X_train, Y_train)
     Y_pred = rf.predict(X_test)
 
@@ -207,7 +225,6 @@ def trainModelFull():
     Y_train = Y
     # rf = RandomForestClassifier(n_estimators=10000, oob_score=True, random_state=1356128)
     rf = RandomForestRegressor(n_estimators=10000, oob_score=True, random_state=1356128)
-
     rf.fit(X_train, Y_train)
 
     # pickle.dump(rf, open("trained_model", 'wb'))
@@ -287,23 +304,47 @@ def getPrecisionAtK(k, location, dev=False):
 def printPrecisionAtK(dev=False):
     k_arr = [5, 10, 20, 50]
 
-    precs = []
+    precs1 = []
+    precs2 = []
+    precs3 = []
+    precs4 = []
 
     for loc in getLocationNames(dev):
 
         ks = []
-        print(loc)
+        # print(loc)
         for k in k_arr:
             prec = getPrecisionAtK(k, loc, dev)
-            print("Prec@k : " + str(k) + " : " + str(prec))
+            # print("Prec@k : " + str(k) + " : " + str(prec))
             ks.append(prec)
-        precs.append(ks[3])
+        precs1.append(ks[0])
+        precs2.append(ks[1])
+        precs3.append(ks[2])
+        precs4.append(ks[3])
 
-    print("Precision@k=50")
-    print("Average: " + str(np.average(precs)))
-    print("Median: " + str(np.median(precs)))
-    print("Min: " + str(np.min(precs)))
-    print("Max: " + str(np.max(precs)))
+    print("\nPrecision@k=5")
+    print("Average: " + str(np.average(precs1)))
+    print("Median: " + str(np.median(precs1)))
+    print("Min: " + str(np.min(precs1)))
+    print("Max: " + str(np.max(precs1)))
+
+    print("\nPrecision@k=10")
+    print("Average: " + str(np.average(precs2)))
+    print("Median: " + str(np.median(precs2)))
+    print("Min: " + str(np.min(precs2)))
+    print("Max: " + str(np.max(precs2)))
+
+    print("\nPrecision@k=20")
+    print("Average: " + str(np.average(precs3)))
+    print("Median: " + str(np.median(precs3)))
+    print("Min: " + str(np.min(precs3)))
+    print("Max: " + str(np.max(precs3)))
+
+    print("\nPrecision@k=50")
+    print("Average: " + str(np.average(precs4)))
+    print("Median: " + str(np.median(precs4)))
+    print("Min: " + str(np.min(precs4)))
+    print("Max: " + str(np.max(precs4)))
 
 
 def getMaxNumberOfClustersGt(location, dev=False):
@@ -364,30 +405,53 @@ def getRecallAtK(k, location, dev=False):
     n = getNumberOfClustersGt(imgs[:k], location, dev)
     m = getMaxNumberOfClustersGt(location, dev)
     recall = 0.0
-    recall = n / min(m,k)
+    recall = n / min(m, k)
     return recall
 
 
 def printRecallAtK(dev=False):
     k_arr = [5, 10, 20, 50]
 
-    recalls = []
+    recalls0 = []
+    recalls1 = []
+    recalls2 = []
+    recalls3 = []
 
     for loc in getLocationNames(dev):
 
         ks = []
-        print(loc)
         for k in k_arr:
             recall = getRecallAtK(k, loc, dev)
-            print("Recall@k : " + str(k) + " : " + str(recall))
+            # print("Recall@k : " + str(k) + " : " + str(recall))
             ks.append(recall)
-        recalls.append(ks[3])
+        recalls0.append(ks[0])
+        recalls1.append(ks[1])
+        recalls2.append(ks[2])
+        recalls3.append(ks[3])
 
-    print("Recall@k=50")
-    print("Average: " + str(np.average(recalls)))
-    print("Median: " + str(np.median(recalls)))
-    print("Min: " + str(np.min(recalls)))
-    print("Max: " + str(np.max(recalls)))
+    print("\nRecall@k=5")
+    print("Average: " + str(np.average(recalls0)))
+    print("Median: " + str(np.median(recalls0)))
+    print("Min: " + str(np.min(recalls0)))
+    print("Max: " + str(np.max(recalls0)))
+
+    print("\nRecall@k=10")
+    print("Average: " + str(np.average(recalls1)))
+    print("Median: " + str(np.median(recalls1)))
+    print("Min: " + str(np.min(recalls1)))
+    print("Max: " + str(np.max(recalls1)))
+
+    print("\nRecall@k=20")
+    print("Average: " + str(np.average(recalls2)))
+    print("Median: " + str(np.median(recalls2)))
+    print("Min: " + str(np.min(recalls2)))
+    print("Max: " + str(np.max(recalls2)))
+
+    print("\nRecall@k=50")
+    print("Average: " + str(np.average(recalls2)))
+    print("Median: " + str(np.median(recalls2)))
+    print("Min: " + str(np.min(recalls2)))
+    print("Max: " + str(np.max(recalls2)))
 
 
 # print(trainModel(dev=True))
@@ -396,12 +460,22 @@ def printRecallAtK(dev=False):
 # model = trainModelSingle("acropolis_athens", dev=True)
 # print(predict("acropolis_athens", model, dev=True))
 
+#start_time = time.time()
+#model = trainModelFull()
+#createPredictions(model,dev=False)
+#print(getResults("ajanta_caves"))
 
-# model = trainModel(dev=True)
-# createPredictions(model, dev=True)
-# print(getResults("acropolis_athens", dev=True))
+#printPrecisionAtK(dev=True)
+#printRecallAtK(dev=True)
+#elapsed_time = time.time() - start_time
+#print("Time: " + str(elapsed_time))
 
-# printPrecisionAtK(dev=True)
-printRecallAtK(dev=True)
-elapsed_time = time.time() - start_time
-print("Time: " + str(elapsed_time))
+# f = open("team4_results.csv", "w")
+# qid = 31
+# for loc in getLocationNames():
+#     print(loc)
+#     i = 0
+#     for r in getResults(loc)[:50]:
+#         f.write(str(qid) + "\t0\t" + str(r) + "\t" + str(i) + "\t" + str(50 - i) + "\tfinal\n")
+#         i += 1
+#     qid += 1
